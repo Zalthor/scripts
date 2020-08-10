@@ -32,11 +32,13 @@ Usage:
     below for available keys and values.
 **quickfort reset**
     Resets quickfort configuration to the defaults in ``quickfort.txt``.
-**quickfort list [-l|--library]**
+**quickfort list [search string] [-m|--mode <mode>] [-l|--library]**
     Lists blueprints in the ``blueprints`` folder. Blueprints are ``.csv`` files
     or sheets within ``.xlsx`` files that contain a ``#<mode>`` comment in the
     upper-left cell. By default, blueprints in the ``blueprints/library/``
-    subfolder are not shown. Specify ``-l`` to include library blueprints.
+    subfolder are not shown. Specify ``-l`` to include library blueprints. The
+    list can be filtered by a specified mode (e.g. "-m build") and/or a
+    substring to search for in a path, filename, mode, or comment.
 **quickfort <command> <list_num> [<options>]**
     Applies the blueprint with the number from the list command.
 **quickfort <command> <filename> [-n|--name <sheet_name>] [<options>]**

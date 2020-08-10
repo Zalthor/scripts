@@ -110,31 +110,53 @@ end
 local valid_list_args = utils.invert({
     'l',
     '-library',
+    'm',
+    '-mode',
 })
 
 function do_list(in_args)
+    local filter_string = nil
+    if #in_args > 0 and not in_args[1]:startswith('-') then
+        filter_string = table.remove(in_args, 1)
+    end
     local args = utils.processArgs(in_args, valid_list_args)
     local show_library = args['l'] ~= nil or args['-library'] ~= nil
+    local filter_mode = args['m'] or args['-mode']
+    if filter_mode and not quickfort_common.valid_modes[filter_mode] then
+        qerror(string.format('invalid mode: "%s"', filter_mode))
+    end
     scan_blueprints()
+    local num_blueprints, num_printed = 0, 0
     for i, v in ipairs(blueprints) do
-        if show_library or not v.is_library then
-            local sheet_spec = ''
-            if v.sheet_name then
-                sheet_spec = string.format(' -n "%s"', v.sheet_name)
-            end
-            local comment = ')'
-            if #v.modeline.comment > 0 then
-                comment = string.format(': %s)', v.modeline.comment)
-            end
-            local start_comment = ''
-            if v.modeline.start_comment and #v.modeline.start_comment > 0 then
-                start_comment = string.format('; cursor start: %s',
-                                              v.modeline.start_comment)
-            end
-            print(string.format('%d) "%s"%s (%s%s%s',
-                                i, v.path, sheet_spec, v.modeline.mode, comment,
-                                start_comment))
+        if v.is_library and not show_library then goto continue end
+        num_blueprints = num_blueprints + 1
+        if filter_mode and v.modeline.mode ~= filter_mode then goto continue end
+        local sheet_spec = ''
+        if v.sheet_name then
+            sheet_spec = string.format(' -n "%s"', v.sheet_name)
         end
+        local comment = ')'
+        if #v.modeline.comment > 0 then
+            comment = string.format(': %s)', v.modeline.comment)
+        end
+        local start_comment = ''
+        if v.modeline.start_comment and #v.modeline.start_comment > 0 then
+            start_comment = string.format('; cursor start: %s',
+                                            v.modeline.start_comment)
+        end
+        local line = string.format(
+            '%d) "%s"%s (%s%s%s',
+            i, v.path, sheet_spec, v.modeline.mode, comment, start_comment)
+        if not filter_string or string.find(line, filter_string) then
+            print(line)
+            num_printed = num_printed + 1
+        end
+        ::continue::
+    end
+    local num_filtered = num_blueprints - num_printed
+    if num_filtered > 0 then
+        print(string.format('  %d blueprints did not match filter',
+                            num_filtered))
     end
 end
 
