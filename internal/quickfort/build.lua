@@ -19,6 +19,7 @@ end
 local utils = require('utils')
 local quickfort_common = reqscript('internal/quickfort/common')
 local quickfort_building = reqscript('internal/quickfort/building')
+local quickfort_orders = reqscript('internal/quickfort/orders')
 local log = quickfort_common.log
 
 --
@@ -766,8 +767,11 @@ function do_run(zlevel, grid)
 end
 
 function do_orders(zlevel, grid)
-    local stats = nil
-    print('"quickfort orders" not yet implemented for mode: build')
+    local stats = {invalid_keys={label='Invalid key sequences', value=0}}
+    local buildings = {}
+    stats.invalid_keys.value = quickfort_building.init_buildings(
+        zlevel, grid, buildings, building_db, building_aliases, true)
+    quickfort_orders.enqueue_orders(stats, buildings, building_db)
     return stats
 end
 
