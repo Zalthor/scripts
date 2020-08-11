@@ -33,25 +33,43 @@ local function scan_csv_blueprint(path)
     return blueprint_cache[path].modeline
 end
 
+local function get_xlsx_sheet_modeline(xlsx_file, sheet_name)
+    local xlsx_sheet = xlsxreader.open_sheet(xlsx_file, sheet_name)
+    return dfhack.with_finalize(
+        function() xlsxreader.close_sheet(xlsx_sheet) end,
+        function()
+            local row_cells = xlsxreader.get_row(xlsx_sheet)
+            if not row_cells or #row_cells == 0 then return nil end
+            return quickfort_parse.parse_modeline(row_cells[1])
+        end
+    )
+end
+
+local function get_xlsx_file_sheet_infos(filepath)
+    local xlsx_file = xlsxreader.open_xlsx_file(filepath)
+    return dfhack.with_finalize(
+        function() xlsxreader.close_xlsx_file(xlsx_file) end,
+        function()
+            local sheet_infos = {}
+            for _, sheet_name in ipairs(xlsxreader.list_sheets(xlsx_file)) do
+                local modeline = get_xlsx_sheet_modeline(xlsx_file, sheet_name)
+                if modeline then
+                    table.insert(sheet_infos,
+                                 {name=sheet_name, modeline=modeline})
+                end
+            end
+            return sheet_infos
+        end
+    )
+end
+
 local function scan_xlsx_blueprint(path)
     local filepath = quickfort_common.get_blueprint_filepath(path)
     local mtime = dfhack.filesystem.mtime(filepath)
     if blueprint_cache[path] and blueprint_cache[path].mtime == mtime then
         return blueprint_cache[path].sheet_infos
     end
-    local sheet_infos = {}
-    local xlsx_file = xlsxreader.open_xlsx_file(filepath)
-    for _, sheet_name in ipairs(xlsxreader.list_sheets(xlsx_file)) do
-        local xlsx_sheet = xlsxreader.open_sheet(xlsx_file, sheet_name)
-        local row_cells = xlsxreader.get_row(xlsx_sheet)
-        xlsxreader.close_sheet(xlsx_sheet)
-        if not row_cells or #row_cells == 0 then goto continue end
-        local modeline = quickfort_parse.parse_modeline(row_cells[1])
-        if not modeline then goto continue end
-        table.insert(sheet_infos, {name=sheet_name, modeline=modeline})
-        ::continue::
-    end
-    xlsxreader.close_xlsx_file(xlsx_file)
+    local sheet_infos = get_xlsx_file_sheet_infos(filepath)
     if #sheet_infos == 0 then
         print(string.format(
                 'skipping "%s": no sheet with a #mode marker detected', v.path))

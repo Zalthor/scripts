@@ -183,19 +183,7 @@ local function process_section(reader_ctx, start_line_num, start_coord)
     end
 end
 
---[[
-returns the following logical structure:
-  map of target map z coordinate ->
-    list of {modeline, grid} tables
-Where the structure of modeline is defined as per parse_modeline and grid is a:
-  map of target y coordinate ->
-    map of target map x coordinate ->
-      {cell=spreadsheet cell, text=text from spreadsheet cell}
-Map keys are numbers, and the keyspace is sparse -- only elements that have
-contents are non-nil.
-]]
-function process_file(filepath, sheet_name, start_cursor_coord)
-    local reader_ctx = init_reader_ctx(filepath, sheet_name)
+function process_sections(reader_ctx, filepath, sheet_name, start_cursor_coord)
     local row_tokens = reader_ctx.get_row_tokens(reader_ctx)
     if not row_tokens then
         qerror(string.format(
@@ -221,6 +209,27 @@ function process_file(filepath, sheet_name, start_cursor_coord)
         cur_line_num = cur_line_num + num_section_rows + 1
         z = z + zmod
     end
-    reader_ctx.cleanup(reader_ctx)
     return zlevels
+end
+
+--[[
+returns the following logical structure:
+  map of target map z coordinate ->
+    list of {modeline, grid} tables
+Where the structure of modeline is defined as per parse_modeline and grid is a:
+  map of target y coordinate ->
+    map of target map x coordinate ->
+      {cell=spreadsheet cell, text=text from spreadsheet cell}
+Map keys are numbers, and the keyspace is sparse -- only elements that have
+contents are non-nil.
+]]
+function process_file(filepath, sheet_name, start_cursor_coord)
+    local reader_ctx = init_reader_ctx(filepath, sheet_name)
+    return dfhack.with_finalize(
+        function() reader_ctx.cleanup(reader_ctx) end,
+        function()
+            return process_sections(reader_ctx, filepath, sheet_name,
+                                    start_cursor_coord)
+        end
+    )
 end
