@@ -132,14 +132,16 @@ quickfort set [<key> <value>]
     "quickfort set" to show current settings.
 quickfort reset
     Resets quickfort configuration to defaults.
-quickfort list [-l|--library]
+quickfort list [search string] [-m|--mode <mode>] [-l|--library]
     Lists blueprints in the "blueprints" folder. Specify -l to include library
-    blueprints.
+    blueprints. The list can be filtered by a specified mode (e.g. "-m build")
+    and/or a substring to search for in a path, filename, mode, or comment.
 quickfort <command> <list_num> [<options>]
     Applies the blueprint with the number from the list command.
-quickfort <command> <filename> [-s|--sheet <sheet_num>] [<options>]
-    Applies the blueprint from the named file. If it is an .xlsx file, the -s
-    parameter is required to identify the sheet. The first sheet is "-s 1".
+quickfort <command> <filename> [-n|--name <sheet_name>] [<options>]
+    Applies the blueprint from the named file. If it is an .xlsx file, the -n
+    parameter is required to identify the sheet name. If the sheet name is not
+    specified, the first sheet is used.
 
 <command> can be one of:
 
