@@ -17,6 +17,7 @@ valid_modes = utils.invert({
 -- keep deprecated settings in the table so we don't break existing configs
 settings = {
     blueprints_dir={value='blueprints'},
+    buildings_use_blocks={value=true},
     force_interactive_build={value=false, deprecated=true},
     force_marker_mode={value=false},
     stockpiles_max_barrels={value=-1},

@@ -77,6 +77,11 @@ configuration stored in the file:
     Directory tree to search for blueprints. Can be set to an absolute or
     relative path. If set to a relative path, resolves to a directory under the
     DF folder.
+``buildings_use_blocks`` (default: 'true')
+    Force all blueprint buildings that could be built with any building material
+    to only use blocks. The prevents logs, boulders, and bars (e.g. potash and
+    coal) from being wasted on constructions. If set to false, buildings will be
+    built with any available building material.
 ``force_marker_mode`` (default: 'false')
     Set to "true" or "false". If true, will designate dig blueprints in marker
     mode. If false, only cells with dig codes explicitly prefixed with ``m``
@@ -88,21 +93,17 @@ configuration stored in the file:
     stockpiles). The default here for wheelbarrows is 0 since using wheelbarrows
     normally *decreases* the efficiency of your fort.
 
-There are also two other configuration files in the ``dfhack-config/quickfort``
-folder: `aliases.txt`_ and `materials.txt`_. ``aliases.txt`` defines keycode
-shortcuts for query blueprints, and ``materials.txt`` defines forbidden
-materials and material preferences for build blueprints. The formats for these
-files are described in the files themselves, and default configuration that all
-players can build on is stored in `aliases-common.txt`_ and
-`materials-common.txt`_ in the ``hack/data/quickfort/`` directory.
+There is one other configuration file in the ``dfhack-config/quickfort`` folder:
+`aliases.txt`_. It defines keycode shortcuts for query blueprints. The format
+for this file is described in the file itself, and default aliases that all
+players can use and build on is stored in
+`hack/data/quickfort/aliases-common.txt`_.
 
 .. _blueprint plugin: https://docs.dfhack.org/en/stable/docs/Plugins.html#blueprint
 .. _Blueprints Guidebook: https://github.com/DFHack/dfhack/tree/develop/data/blueprints
 .. _blueprints/library: https://github.com/DFHack/dfhack/tree/develop/data/blueprints/library
 .. _aliases.txt: https://github.com/DFHack/dfhack/tree/develop/dfhack-config/quickfort/aliases.txt
-.. _materials.txt: https://github.com/DFHack/dfhack/tree/develop/dfhack-config/quickfort/materials.txt
-.. _aliases-common.txt: https://github.com/DFHack/dfhack/tree/develop/data/quickfort/aliases-common.txt
-.. _materials-common.txt: https://github.com/DFHack/dfhack/tree/develop/data/quickfort/materials-common.txt
+.. _hack/data/quickfort/aliases-common.txt: https://github.com/DFHack/dfhack/tree/develop/data/quickfort/aliases-common.txt
 ]====]
 
 -- reqscript all internal files here, even if they're not directly used by this
