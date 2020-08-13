@@ -41,10 +41,13 @@ Usage:
     substring to search for in a path, filename, mode, or comment.
 **quickfort <command> <list_num> [<options>]**
     Applies the blueprint with the number from the list command.
-**quickfort <command> <filename> [-n|--name <sheet_name>] [<options>]**
-    Applies the blueprint from the named file. If it is an ``.xlsx`` file,
-    the ``-n`` (or ``--name``) parameter can identify the sheet name. If the
-    sheet name is not specified, the first sheet is used.
+**quickfort <command> <filename> [-n|--name <name>] [<options>]**
+    Applies a blueprint in the specified file. The optional ``name`` parameter
+    can select a specific blueprint from a file that contains multiple
+    blueprints with the format "sheetname/label", or just "/label" for .csv
+    files. The label is defined in the blueprint modeline, defaulting to it's
+    order in the sheet or file if not defined. If the -n parameter is not
+    specified, the first blueprint in the first sheet is used.
 
 **<command>** can be one of:
 
@@ -139,10 +142,11 @@ quickfort list [search string] [-m|--mode <mode>] [-l|--library]
     and/or a substring to search for in a path, filename, mode, or comment.
 quickfort <command> <list_num> [<options>]
     Applies the blueprint with the number from the list command.
-quickfort <command> <filename> [-n|--name <sheet_name>] [<options>]
-    Applies the blueprint from the named file. If it is an .xlsx file, the -n
-    parameter is required to identify the sheet name. If the sheet name is not
-    specified, the first sheet is used.
+quickfort <command> <filename> [-n|--name <name>] [<options>]
+    Applies a blueprint in the specified file. The optional name parameter can
+    select a specific blueprint from a file that contains multiple blueprints
+    with the format "sheetname/label", or just "/label" for .csv files. If -n is
+    not specified, the first blueprint in the first sheet is used.
 
 <command> can be one of:
 

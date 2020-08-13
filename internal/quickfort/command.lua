@@ -41,16 +41,22 @@ function do_command(in_args)
     if not blueprint_name or blueprint_name == '' then
         qerror("expected <list_num> or <blueprint_name> parameter")
     end
-    local list_num = tonumber(blueprint_name)
-    local sheet_name = nil
-    if list_num then
-        blueprint_name, sheet_name =
-                quickfort_list.get_blueprint_by_number(list_num)
-    end
     local args = utils.processArgs(in_args, valid_command_args)
     local quiet = args['q'] ~= nil or args['-quiet'] ~= nil
     local verbose = args['v'] ~= nil or args['-verbose'] ~= nil
-    sheet_name = sheet_name or args['n'] or args['-name']
+    local args_name = args['n'] or args['-name']
+    local sheet_name, label = nil, nil
+    if args_name then
+        _, _, sheet_name, label = args_name:find('^([^/]*)/?(.*)$')
+        if #sheet_name == 0 then sheet_name = nil end
+        if #label == 0 then label = nil end
+    end
+
+    local list_num = tonumber(blueprint_name)
+    if list_num then
+        blueprint_name, sheet_name, label =
+                quickfort_list.get_blueprint_by_number(list_num)
+    end
 
     local cursor = guidm.getCursorPos()
     if not cursor then
@@ -65,7 +71,8 @@ function do_command(in_args)
     quickfort_common.verbose = verbose
 
     local filepath = quickfort_common.get_blueprint_filepath(blueprint_name)
-    local data = quickfort_parse.process_file(filepath, sheet_name, cursor)
+    local data =
+            quickfort_parse.process_section(filepath, sheet_name, label, cursor)
     for zlevel, section_data_list in pairs(data) do
         for _, section_data in ipairs(section_data_list) do
             local modeline = section_data.modeline
