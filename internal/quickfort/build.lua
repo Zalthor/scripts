@@ -728,10 +728,9 @@ local function create_building(b)
     local filters = nil
     if quickfort_common.settings['buildings_use_blocks'].value then
         local filter_mod = { material={item_type=df.item_type.BLOCKS,
-                                       vector_id=df.job_item_vector_id.BLOCKS}}
+                                       vector_id=df.job_item_vector_id.BLOCKS} }
         filters = dfhack.buildings.getFiltersByType(
-            filter_mod, type=db_entry.type, subtype=db_entry.subtype,
-            custom=db_entry.custom)
+            filter_mod, db_entry.type, db_entry.subtype, db_entry.custom)
     end
     local bld, err = dfhack.buildings.constructBuilding{
         type=db_entry.type, subtype=db_entry.subtype, custom=db_entry.custom,
