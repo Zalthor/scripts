@@ -11,7 +11,8 @@ valid_modes = utils.invert({
     'dig',
     'build',
     'place',
-    'query'
+    'query',
+    'meta',
 })
 
 -- keep deprecated settings in the table so we don't break existing configs

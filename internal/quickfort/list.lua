@@ -97,6 +97,14 @@ local function scan_blueprints()
     end
 end
 
+local function get_section_name(sheet_name, label)
+    if not sheet_name and not (label and label ~= "1") then return nil end
+    local sheet_name_str, label_str = '', ''
+    if sheet_name then sheet_name_str = sheet_name end
+    if label and label ~= "1" then label_str = '/' .. label end
+    return string.format('%s%s', sheet_name_str, label_str)
+end
+
 function get_blueprint_by_number(list_num)
     if #blueprints == 0 then
         scan_blueprints()
@@ -105,7 +113,9 @@ function get_blueprint_by_number(list_num)
     if not blueprint then
         qerror(string.format('invalid list index: %d', list_num))
     end
-    return blueprint.path, blueprint.sheet_name, blueprint.modeline.label
+    local section_name =
+            get_section_name(blueprint.sheet_name, blueprint.modeline.label)
+    return blueprint.path, section_name
 end
 
 local valid_list_args = utils.invert({
@@ -133,13 +143,9 @@ function do_list(in_args)
         num_blueprints = num_blueprints + 1
         if filter_mode and v.modeline.mode ~= filter_mode then goto continue end
         local sheet_spec = ''
-        if v.sheet_name or (v.modeline.label and v.modeline.label ~= "1") then
-            local sheet_name_str, label_str = '', ''
-            if v.sheet_name then sheet_name_str = v.sheet_name end
-            if v.modeline.label and v.modeline.label ~= "1" then
-                label_str = '/' .. v.modeline.label
-            end
-            sheet_spec = string.format(' -n "%s%s"', sheet_name_str, label_str)
+        local section_name = get_section_name(v.sheet_name, v.modeline.label)
+        if section_name then
+            sheet_spec = string.format(' -n "%s"', section_name)
         end
         local comment = ')'
         if #v.modeline.comment > 0 then
