@@ -119,6 +119,8 @@ function get_blueprint_by_number(list_num)
 end
 
 local valid_list_args = utils.invert({
+    'h',
+    '-hidden',
     'l',
     '-library',
     'm',
@@ -132,6 +134,7 @@ function do_list(in_args)
     end
     local args = utils.processArgs(in_args, valid_list_args)
     local show_library = args['l'] ~= nil or args['-library'] ~= nil
+    local show_hidden = args['h'] ~= nil or args['-hidden'] ~= nil
     local filter_mode = args['m'] or args['-mode']
     if filter_mode and not quickfort_common.valid_modes[filter_mode] then
         qerror(string.format('invalid mode: "%s"', filter_mode))
@@ -140,6 +143,7 @@ function do_list(in_args)
     local num_blueprints, num_printed = 0, 0
     for i, v in ipairs(blueprints) do
         if v.is_library and not show_library then goto continue end
+        if not show_hidden and v.modeline.hidden then goto continue end
         num_blueprints = num_blueprints + 1
         if filter_mode and v.modeline.mode ~= filter_mode then goto continue end
         local sheet_spec = ''

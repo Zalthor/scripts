@@ -74,27 +74,28 @@ local function tokenize_next_csv_line(file)
     return tokens
 end
 
-local function parse_label(modeline, start_pos, filename)
+local function parse_label(modeline, start_pos, filename, marker_values)
     local _, label_str_end, label_str =
             string.find(modeline, '^%s+label(%b())', start_pos)
     if not label_str then
-        return nil, start_pos
+        return false, start_pos
     end
     local _, _, label = string.find(label_str, '^%(%s*(%a.-)%s*%)$')
     if not label or #label == 0 then
         print(string.format(
             'error while parsing "%s": labels must start with a letter: "%s"',
             filename, modeline))
-        return nil, label_str_end + 1
+    else
+        marker_values.label = label
     end
-    return label, label_str_end + 1
+    return true, label_str_end + 1
 end
 
-local function parse_start(modeline, start_pos, filename)
+local function parse_start(modeline, start_pos, filename, marker_values)
     local _, start_str_end, start_str =
             string.find(modeline, '^%s+start(%b())', start_pos)
     if not start_str or #start_str == 0 then
-        return 1, 1, nil, start_pos
+        return false, start_pos
     end
     _, _, startx, starty, start_comment =
             string.find(start_str, '^%(%s*(%d+)%s*[;, ]%s*(%d+)%s*[;, ]?%s*(.*)%)$')
@@ -102,9 +103,44 @@ local function parse_start(modeline, start_pos, filename)
         print(string.format(
             'error while parsing "%s": invalid start offsets: %s',
             filename, modeline))
-        return 1, 1, nil, start_str_end + 1
+        marker_values.startx = 1
+        marker_values.starty = 1
+    else
+        marker_values.startx = startx
+        marker_values.starty = starty
+        marker_values.start_comment = start_comment
     end
-    return startx, starty, start_comment, start_str_end + 1
+    return true, start_str_end + 1
+end
+
+local function parse_hidden(modeline, start_pos, filename, marker_values)
+    local _, hidden_str_end, hidden_str =
+            string.find(modeline, '^%s+hidden(%b())', start_pos)
+    if not hidden_str or #hidden_str == 0 then return false, start_pos end
+    marker_values.hidden = true
+    return true, hidden_str_end + 1
+end
+
+local marker_fns = {parse_label, parse_start, parse_hidden}
+
+-- parses all markers in any order
+-- returns table of found values: {label, startx, starty, start_comment, hidden}
+local function parse_markers(modeline, start_pos, filename)
+    local remaining_marker_fns = copyall(marker_fns)
+    local marker_values = {}
+    while #remaining_marker_fns > 0 do
+        local matched = false
+        for i,marker_fn in ipairs(remaining_marker_fns) do
+            matched, start_pos =
+                    marker_fn(modeline, start_pos, filename, marker_values)
+            if matched then
+                table.remove(remaining_marker_fns, i)
+                break
+            end
+        end
+        if not matched then break end
+    end
+    return marker_values, start_pos
 end
 
 --[[
@@ -124,22 +160,13 @@ local function parse_modeline(modeline, filename, modeline_id)
     if not mode or not quickfort_common.valid_modes[mode] then
         return nil
     end
-    local label, next_str_start = parse_label(modeline, mode_end+1, filename)
-    local startx, starty, start_comment, next_str_start =
-            parse_start(modeline, next_str_start, filename)
-    if not label then
-        -- allow label and start tags in any order
-        label, next_str_start = parse_label(modeline, next_str_start, filename)
-    end
-    local _, _, comment = string.find(modeline, '^%s*(.*)', next_str_start)
-    return {
-        mode=mode,
-        label=label or modeline_id,
-        startx=startx,
-        starty=starty,
-        start_comment=start_comment,
-        comment=comment
-    }
+    local modeline_data, comment_start =
+            parse_markers(modeline, mode_end+1, filename)
+    local _, _, comment = string.find(modeline, '^%s*(.*)', comment_start)
+    modeline_data.mode = mode
+    modeline_data.comment = comment
+    modeline_data.label = modeline_data.label or modeline_id
+    return modeline_data
 end
 
 local function get_col_name(col)
