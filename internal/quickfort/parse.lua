@@ -240,7 +240,7 @@ local function process_level(reader_ctx, start_line_num, start_coord)
 end
 
 local function process_levels(reader_ctx, label, start_cursor_coord)
-    local zlevels = {}
+    local section_data_list = {}
     -- scan down to the target label
     local cur_line_num, modeline_id = 1, 1
     local row_tokens, modeline = nil, nil
@@ -271,15 +271,15 @@ local function process_levels(reader_ctx, label, start_cursor_coord)
                 process_level(reader_ctx, cur_line_num, xyz2pos(x, y, z))
         for _, _ in pairs(grid) do
             -- apparently, the only way to tell if a sparse array is not empty
-            if not zlevels[z] then zlevels[z] = {} end
-            table.insert(zlevels[z], {modeline=modeline, grid=grid})
+            table.insert(section_data_list,
+                         {modeline=modeline, zlevel=z, grid=grid})
             break;
         end
         if zmod == nil then break end
         cur_line_num = cur_line_num + num_section_rows + 1
         z = z + zmod
     end
-    return zlevels
+    return section_data_list
 end
 
 local function get_sheet_modelines(reader_ctx)
@@ -306,15 +306,13 @@ function get_modelines(filepath, sheet_name)
 end
 
 --[[
-returns the following logical structure:
-  map of target map z coordinate ->
-    list of {modeline, grid} tables
+returns a list of {modeline, zlevel, grid} tables
 Where the structure of modeline is defined as per parse_modeline and grid is a:
   map of target y coordinate ->
     map of target map x coordinate ->
       {cell=spreadsheet cell, text=text from spreadsheet cell}
-Map keys are numbers, and the keyspace is sparse -- only elements that have
-contents are non-nil.
+Map keys are numbers, and the keyspace is sparse -- only cells that have content
+are non-nil.
 ]]
 function process_section(filepath, sheet_name, label, start_cursor_coord)
     local reader_ctx = init_reader_ctx(filepath, sheet_name)

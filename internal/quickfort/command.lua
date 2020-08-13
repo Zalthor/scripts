@@ -38,26 +38,24 @@ function do_command_internal(ctx, section_name)
     local sheet_name, label = parse_section_name(section_name)
     ctx.sheet_name = sheet_name
     local filepath = quickfort_common.get_blueprint_filepath(ctx.blueprint_name)
-    local data = quickfort_parse.process_section(filepath, sheet_name, label,
-                                                 ctx.cursor)
+    local section_data_list = quickfort_parse.process_section(
+            filepath, sheet_name, label, ctx.cursor)
     local command = ctx.command
-    for zlevel, section_data_list in pairs(data) do
-        for _, section_data in ipairs(section_data_list) do
-            local modeline = section_data.modeline
-            ctx.cursor.z = zlevel
-            local stats = mode_modules[modeline.mode][command_switch[command]](
-                    zlevel, section_data.grid, ctx)
-            if stats and not ctx.quiet and modeline.mode ~= 'meta' then
-                if command == 'orders' then
-                    print('ordered:')
-                else
-                    print(string.format('%s on z-level %d',
-                                        modeline.mode, zlevel))
-                end
-                for _, stat in pairs(stats) do
-                    if stat.always or stat.value > 0 then
-                        print(string.format('  %s: %d', stat.label, stat.value))
-                    end
+    for _, section_data in ipairs(section_data_list) do
+        local modeline = section_data.modeline
+        ctx.cursor.z = section_data.zlevel
+        local stats = mode_modules[modeline.mode][command_switch[command]](
+                section_data.zlevel, section_data.grid, ctx)
+        if stats and not ctx.quiet and modeline.mode ~= 'meta' then
+            if command == 'orders' then
+                print('ordered:')
+            else
+                print(string.format('%s on z-level %d',
+                                    modeline.mode, section_data.zlevel))
+            end
+            for _, stat in pairs(stats) do
+                if stat.always or stat.value > 0 then
+                    print(string.format('  %s: %d', stat.label, stat.value))
                 end
             end
         end
