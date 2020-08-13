@@ -17,6 +17,7 @@ if not dfhack_flags.module then
 end
 
 local utils = require('utils')
+local buildingplan = require('plugins.buildingplan')
 local quickfort_common = reqscript('internal/quickfort/common')
 local quickfort_building = reqscript('internal/quickfort/building')
 local quickfort_orders = reqscript('internal/quickfort/orders')
@@ -711,7 +712,7 @@ local building_aliases = {
 --
 
 local function create_building(b)
-    db_entry = building_db[b.type]
+    local db_entry = building_db[b.type]
     log('creating %dx%d %s at map coordinates (%d, %d, %d), defined from ' ..
         'spreadsheet cells: %s',
         b.width, b.height, db_entry.label, b.pos.x, b.pos.y, b.pos.z,
@@ -724,10 +725,18 @@ local function create_building(b)
     if use_extents then
         fields.room = {x=b.pos.x, y=b.pos.y, width=b.width, height=b.height}
     end
+    local filters = nil
+    if quickfort_common.settings['buildings_use_blocks'].value then
+        local filter_mod = { material={item_type=df.item_type.BLOCKS,
+                                       vector_id=df.job_item_vector_id.BLOCKS}}
+        filters = dfhack.buildings.getFiltersByType(
+            filter_mod, type=db_entry.type, subtype=db_entry.subtype,
+            custom=db_entry.custom)
+    end
     local bld, err = dfhack.buildings.constructBuilding{
         type=db_entry.type, subtype=db_entry.subtype, custom=db_entry.custom,
         pos=b.pos, width=b.width, height=b.height, direction=db_entry.direction,
-        fields=fields}
+        filters=filters, fields=fields}
     if not bld then
         -- this is an error instead of a qerror since our validity checking
         -- is supposed to prevent this from ever happening
@@ -736,6 +745,10 @@ local function create_building(b)
     -- constructBuilding deallocates extents, so we have to assign it after
     if use_extents then
         bld.room.extents = quickfort_building.make_extents(b, building_db)
+    end
+    if buildingplan.isPlannableBuilding(db_entry.type) then
+        log('registering with buildingplan')
+        buildingplan.addPlannedBuilding(bld)
     end
     if db_entry.post_construction_fn then db_entry.post_construction_fn(bld) end
 end
@@ -762,6 +775,7 @@ function do_run(zlevel, grid)
             stats.designated.value = stats.designated.value + 1
         end
     end
+    buildingplan.doCycle()
     dfhack.job.checkBuildingsNow()
     return stats
 end
