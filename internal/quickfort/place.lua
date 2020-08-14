@@ -20,7 +20,7 @@ local quickfort_building = reqscript('internal/quickfort/building')
 local quickfort_query = reqscript('internal/quickfort/query')
 local log = quickfort_common.log
 
-local function is_valid_stockpile_tile(pos)
+function is_valid_stockpile_tile(pos)
     local flags, occupancy = dfhack.maps.getTileFlags(pos)
     if flags.hidden or occupancy.building ~= 0 then return false end
     local shape = df.tiletype.attrs[dfhack.maps.getTileType(pos)].shape
@@ -36,7 +36,7 @@ local function is_valid_stockpile_tile(pos)
             shape == df.tiletype_shape.SHRUB
 end
 
-local function is_valid_stockpile_extent(s)
+function is_valid_stockpile_extent(s)
     for extent_x, col in ipairs(s.extent_grid) do
         for extent_y, in_extent in ipairs(col) do
             if in_extent then return true end

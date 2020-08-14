@@ -11,6 +11,7 @@ valid_modes = utils.invert({
     'dig',
     'build',
     'place',
+    'zone',
     'query',
     'meta',
 })
