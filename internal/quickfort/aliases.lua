@@ -11,7 +11,6 @@ local log = quickfort_common.log
 -- special keycode shortcuts inherited from python quickfort.
 local special_keys = {
     ['&']='Enter',
-    ['+']='{Shift}',
     ['!']='{Ctrl}',
     ['~']='{Alt}',
     ['@']={'{Shift}','Enter'},

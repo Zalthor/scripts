@@ -45,6 +45,9 @@ function do_command_internal(ctx, section_name)
         ctx.cursor.z = section_data.zlevel
         mode_modules[modeline.mode][command_switch[ctx.command]](
             section_data.zlevel, section_data.grid, ctx)
+        if modeline.message then
+            table.insert(ctx.messages, modeline.message)
+        end
     end
 end
 
@@ -94,7 +97,7 @@ function do_command(in_args)
         invalid_keys={label='Invalid key sequences', value=0},
     }
     local ctx = {command=command, blueprint_name=blueprint_name, cursor=cursor,
-                 stats=stats}
+                 stats=stats, messages={}}
     do_command_internal(ctx, section_name)
     if command == 'orders' then quickfort_orders.create_orders(ctx) end
     local section_name_str = ''
@@ -109,5 +112,8 @@ function do_command(in_args)
                 print(string.format('  %s: %d', stat.label, stat.value))
             end
         end
+    end
+    for _,message in ipairs(ctx.messages) do
+        print('* '..message)
     end
 end

@@ -120,10 +120,24 @@ local function parse_hidden(modeline, start_pos, filename, marker_values)
     return true, hidden_str_end + 1
 end
 
-local marker_fns = {parse_label, parse_start, parse_hidden}
+local function parse_message(modeline, start_pos, filename, marker_values)
+    local _, message_str_end, message_str =
+            string.find(modeline, '^%s+message(%b())', start_pos)
+    if not message_str then
+        return false, start_pos
+    end
+    local _, _, message = string.find(message_str, '^%(%s*(.-)%s*%)$')
+    if message and #message > 0 then
+        marker_values.message = message
+    end
+    return true, message_str_end + 1
+end
+
+local marker_fns = {parse_label, parse_start, parse_hidden, parse_message}
 
 -- parses all markers in any order
--- returns table of found values: {label, startx, starty, start_comment, hidden}
+-- returns table of found values:
+-- {label, startx, starty, start_comment, hidden, message}
 local function parse_markers(modeline, start_pos, filename)
     local remaining_marker_fns = copyall(marker_fns)
     local marker_values = {}

@@ -5,6 +5,7 @@ if not dfhack_flags.module then
     qerror('this script cannot be called directly')
 end
 
+local guidm = require('gui.dwarfmode')
 local utils = require('utils')
 
 valid_modes = utils.invert({
@@ -94,4 +95,9 @@ function parse_cell(text)
     if not width or width <= 0 then width = 1 end
     if not height or height <= 0 then height = 1 end
     return keys, {width=width, height=height, specified=specified}
+end
+
+function move_cursor(pos)
+    guidm.setCursorPos(pos)
+    dfhack.gui.refreshSidebar()
 end

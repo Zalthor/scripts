@@ -110,6 +110,18 @@ function do_orders()
     log('nothing to do for blueprints in mode: zone')
 end
 
+local function get_activity_zones(pos)
+    local activity_zones = {}
+    local civzones = dfhack.buildings.findCivzonesAt(pos)
+    if not civzones then return activity_zones end
+    for _,civzone in ipairs(civzones) do
+        if civzone.type == df.civzone_type.ActivityZone then
+            table.insert(activity_zones, civzone)
+        end
+    end
+    return activity_zones
+end
+
 function do_undo(zlevel, grid, ctx)
     local stats = ctx.stats
     stats.zone_removed = stats.zone_removed or
@@ -120,22 +132,34 @@ function do_undo(zlevel, grid, ctx)
             stats.invalid_keys.value + quickfort_building.init_buildings(
                 zlevel, grid, zones, zone_db)
 
+    -- ensure a zone is not currently selected when we delete it. that causes
+    -- crashes. note that we move the cursor, but we have to keep the ui mode
+    -- the same. otherwise the zone stays selected (somehow) in memory. we only
+    -- move the cursor when we're in mode Zones to avoid having the viewport
+    -- jump around when it doesn't need to
+    local restore_cursor = false
+    if df.global.ui.main.mode == df.ui_sidebar_mode.Zones then
+        quickfort_common.move_cursor(xyz2pos(-1, -1, ctx.cursor.z))
+        restore_cursor = true
+    end
+
     for _, zone in ipairs(zones) do
         for extent_x, col in ipairs(zone.extent_grid) do
             for extent_y, in_extent in ipairs(col) do
                 if not zone.extent_grid[extent_x][extent_y] then goto continue end
                 local pos = xyz2pos(zone.pos.x+extent_x-1,
                                     zone.pos.y+extent_y-1, zone.pos.z)
-                local civzones = dfhack.buildings.findCivzonesAt(pos)
-                if not civzones then goto continue end
-                for _,civzone in ipairs(civzones) do
-                    if civzone.type == df.civzone_type.ActivityZone then
-                        dfhack.buildings.deconstruct(civzone)
-                        stats.zone_removed.value = stats.zone_removed.value + 1
-                    end
+                local activity_zones = get_activity_zones(pos)
+                for _,activity_zone in ipairs(activity_zones) do
+                    log('removing zone at map coordinates (%d, %d, %d)',
+                        pos.x, pos.y, pos.z)
+                    dfhack.buildings.deconstruct(activity_zone)
+                    stats.zone_removed.value = stats.zone_removed.value + 1
                 end
                 ::continue::
             end
         end
     end
+
+    if restore_cursor then quickfort_common.move_cursor(ctx.cursor) end
 end
