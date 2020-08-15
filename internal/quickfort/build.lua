@@ -735,8 +735,9 @@ local function create_building(b)
     end
     local filters = nil
     if quickfort_common.settings['buildings_use_blocks'].value then
-        local filter_mod = { material={item_type=df.item_type.BLOCKS,
-                                       vector_id=df.job_item_vector_id.BLOCKS} }
+        -- don't set the vector_id since that breaks custom buildings: it sets
+        -- all their building materials to use that vector id
+        local filter_mod = { material={item_type=df.item_type.BLOCKS} }
         filters = dfhack.buildings.getFiltersByType(
             filter_mod, db_entry.type, db_entry.subtype, db_entry.custom)
     end
