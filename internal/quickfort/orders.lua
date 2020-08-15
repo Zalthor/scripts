@@ -14,12 +14,11 @@ local quickfort_common = reqscript('internal/quickfort/common')
 local log = quickfort_common.log
 
 --
-local function inc_order_spec(order_specs, filter, reactions, label)
+local function inc_order_spec(order_specs, quantity, reactions, label)
     if label == 'wood' then
         log('no manager order for creating wood; go chop some!')
         return
     end
-    local quantity = filter.quantity or 1
     label = label:gsub('_', ' ')
     log('needs job to build: %s %s', tostring(quantity), label)
     if not order_specs[label] then
@@ -61,14 +60,14 @@ local function process_filter(order_specs, filter, reactions)
     local label = nil
     if filter.flags2 and filter.flags2.building_material then
         if filter.flags2.magma_safe then
-            -- restrict this to magma-safe materials
+            -- TODO restrict this to magma-safe materials
             label = 'blocks'
         elseif filter.flags2.fire_safe then
-            -- restrict this to fire-safe materials
+            -- TODO restrict this to fire-safe materials
             label = 'blocks'
         else label = 'blocks' end
     elseif filter.item_type == df.item_type.TOOL then
-        label = df.tool_uses[filter.has_tool_use]:lower()
+        label = 'rock ' .. df.tool_uses[filter.has_tool_use]:lower()
     elseif filter.item_type == df.item_type.ANIMALTRAP then
         label = 'animal trap'
     elseif filter.item_type == df.item_type.ARMORSTAND then
@@ -102,7 +101,7 @@ local function process_filter(order_specs, filter, reactions)
         printall_recurse(filter)
         error('unhandled filter')
     end
-    inc_order_spec(order_specs, filter, reactions, label)
+    inc_order_spec(order_specs, filter.quantity or 1, reactions, label)
 end
 
 -- returns the number of materials required for this extent-based structure
@@ -116,8 +115,18 @@ local function get_num_items(b)
     return math.floor(num_tiles/4) + 1
 end
 
-function enqueue_orders(stats, buildings, building_db)
-    local order_specs = {}
+function create_orders(ctx)
+    for k,order_spec in pairs(ctx.order_specs) do
+        local quantity = math.ceil(order_spec.quantity)
+        log('ordering %d %s', quantity, k)
+        stockflow.create_orders(order_spec.order, quantity)
+        table.insert(ctx.stats, {label=k, value=quantity})
+    end
+end
+
+function enqueue_orders(stats, buildings, building_db, ctx)
+    local order_specs = ctx.order_specs or {}
+    ctx.order_specs = order_specs
     local reactions = stockflow.reaction_list -- don't cache this; it can reset
     for _, b in ipairs(buildings) do
         local db_entry = building_db[b.type]
@@ -131,6 +140,15 @@ function enqueue_orders(stats, buildings, building_db)
                     'needs updating',
                     db_entry.type, db_entry.subtype, db_entry.custom))
         end
+        if db_entry.additional_orders then
+            for _,label in ipairs(db_entry.additional_orders) do
+                local quantity = 1
+                if additional_order == df.item_type.BLOCKS then
+                    quantity = 1 /4
+                end
+                inc_order_spec(order_specs, quantity, reactions, label)
+            end
+        end
         for _,filter in ipairs(filters) do
             if filter.quantity == -1 then filter.quantity = get_num_items(b) end
             if filter.flags2 and filter.flags2.building_material then
@@ -140,11 +158,5 @@ function enqueue_orders(stats, buildings, building_db)
             end
             process_filter(order_specs, filter, reactions)
         end
-    end
-    for k,order_spec in pairs(order_specs) do
-        local quantity = math.ceil(order_spec.quantity)
-        log('ordering %d %s', quantity, k)
-        stockflow.create_orders(order_spec.order, quantity)
-        table.insert(stats, {label=k, value=quantity})
     end
 end

@@ -39,7 +39,9 @@ Usage:
     subfolder or blueprints that contain a ``hidden()`` marker in their modeline
     are not shown. Specify ``-l`` or ``-h`` to include library or hidden
     blueprints. The list can be filtered by a specified mode (e.g. "-m build")
-    and/or a substring to search for in a path, filename, mode, or comment.
+    and/or a substring to search for in a path, filename, mode, or comment. The
+    id numbers in the list may not be contiguous if there are hidden or filtered
+    blueprints that are not being shown.
 **quickfort <command> <list_num> [<options>]**
     Applies the blueprint with the number from the list command.
 **quickfort <command> <filename> [-n|--name <name>] [<options>]**

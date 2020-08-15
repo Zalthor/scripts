@@ -509,13 +509,7 @@ local function dig_tile(ctx, code, marker_mode)
     return false
 end
 
-local function do_run_impl(zlevel, grid)
-    local stats = {
-        designated={label='Tiles designated', value=0, always=true},
-        out_of_bounds={label='Tiles skipped (outside map boundary)', value=0},
-        invalid_keys={label='Invalid key sequences', value=0},
-    }
-
+local function do_run_impl(zlevel, grid, stats)
     for y, row in pairs(grid) do
         for x, cell_and_text in pairs(row) do
             local cell, text = cell_and_text.cell, cell_and_text.text
@@ -531,7 +525,7 @@ local function do_run_impl(zlevel, grid)
             end
             if not designate_switch[keys] then
                 print(string.format('invalid key sequence: "%s"', text))
-                stats.invalid_keys.value = stats.invalid_keys.value+1
+                stats.invalid_keys.value = stats.invalid_keys.value + 1
                 goto continue
             end
             for extent_x=1,extent.width do
@@ -554,10 +548,12 @@ local function do_run_impl(zlevel, grid)
                     if not quickfort_common.is_within_map_bounds(ctx.pos) and
                             not ctx.on_map_edge then
                         log('coordinates out of bounds; skipping')
-                        stats.out_of_bounds.value = stats.out_of_bounds.value+1
+                        stats.out_of_bounds.value =
+                                stats.out_of_bounds.value + 1
                     else
                         if dig_tile(ctx, keys, marker_mode) then
-                            stats.designated.value = stats.designated.value+1
+                            stats.dig_designated.value =
+                                    stats.dig_designated.value + 1
                         end
                     end
                 end
@@ -568,19 +564,21 @@ local function do_run_impl(zlevel, grid)
     return stats
 end
 
-function do_run(zlevel, grid)
+function do_run(zlevel, grid, ctx)
     values = values_run
-    local stats = do_run_impl(zlevel, grid)
+    ctx.stats.dig_designated = ctx.stats.dig_designated or
+            {label='Tiles designated for digging', value=0, always=true}
+    do_run_impl(zlevel, grid, ctx.stats)
     dfhack.job.checkDesignationsNow()
-    return stats
 end
 
-function do_orders(zlevel, grid)
+function do_orders()
     log('nothing to do for blueprints in mode: dig')
-    return nil
 end
 
-function do_undo(zlevel, grid)
+function do_undo(zlevel, grid, ctx)
     values = values_undo
-    return do_run_impl(zlevel, grid)
+    ctx.stats.dig_designated = ctx.stats.dig_designated or
+            {label='Tiles undesignated for digging', value=0, always=true}
+    do_run_impl(zlevel, grid, ctx.stats)
 end

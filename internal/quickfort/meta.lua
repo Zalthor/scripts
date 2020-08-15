@@ -39,11 +39,12 @@ local function sort_cells(cell_a, cell_b)
 end
 
 local function do_meta(zlevel, grid, ctx)
-    local stats = ctx.stats or {
-        blueprints={label='Blueprints applied', value=0, always=true},
-    }
-    ctx.stats = stats
+    local stats = ctx.stats
+    stats.meta_blueprints = stats.meta_blueprints or
+            {label='Blueprints applied', value=0, always=true}
+
     local cells = {}
+    -- ensure we process blueprints in the declared order
     for y, row in pairs(grid) do
         for x, cell_and_text in pairs(row) do
             local cell, text = cell_and_text.cell, cell_and_text.text
@@ -54,7 +55,7 @@ local function do_meta(zlevel, grid, ctx)
     table.sort(cells, sort_cells)
     for _, cell in ipairs(cells) do
         quickfort_command.do_command_internal(ctx, cell.section_name)
-        stats.blueprints.value = stats.blueprints.value + 1
+        stats.meta_blueprints.value = stats.meta_blueprints.value + 1
     end
     return stats
 end

@@ -67,7 +67,7 @@ local function flood_fill(grid, x, y, seen_grid, data, db, aliases)
     if aliases[string.lower(keys)] then keys = aliases[string.lower(keys)] end
     if not db[keys] then
         if not seen_grid[x] then seen_grid[x] = {} end
-        seen_grid[x][y] = true -- seen, but not part of any stockpile
+        seen_grid[x][y] = true -- seen, but not part of any building
         print(string.format('invalid key sequence in cell %s: "%s"',
                             cell, text))
         return 1

@@ -8,8 +8,9 @@ end
 local utils = require('utils')
 local guidm = require('gui.dwarfmode')
 local quickfort_common = reqscript('internal/quickfort/common')
-local quickfort_parse = reqscript('internal/quickfort/parse')
 local quickfort_list = reqscript('internal/quickfort/list')
+local quickfort_orders = reqscript('internal/quickfort/orders')
+local quickfort_parse = reqscript('internal/quickfort/parse')
 
 local mode_modules = {}
 for mode, _ in pairs(quickfort_common.valid_modes) do
@@ -33,8 +34,6 @@ local command_switch = {
 }
 
 function do_command_internal(ctx, section_name)
-    local top_level = ctx.top_level
-    ctx.top_level = false
     local sheet_name, label = parse_section_name(section_name)
     ctx.sheet_name = sheet_name
     local filepath = quickfort_common.get_blueprint_filepath(ctx.blueprint_name)
@@ -44,40 +43,8 @@ function do_command_internal(ctx, section_name)
     for _, section_data in ipairs(section_data_list) do
         local modeline = section_data.modeline
         ctx.cursor.z = section_data.zlevel
-        local stats = mode_modules[modeline.mode][command_switch[command]](
-                section_data.zlevel, section_data.grid, ctx)
-        if stats and not ctx.quiet and modeline.mode ~= 'meta' then
-            if command == 'orders' then
-                print('ordered:')
-            else
-                print(string.format('%s on z-level %d',
-                                    modeline.mode, section_data.zlevel))
-            end
-            for _, stat in pairs(stats) do
-                if stat.always or stat.value > 0 then
-                    print(string.format('  %s: %d', stat.label, stat.value))
-                end
-            end
-        end
-    end
-    local section_name_str = ''
-    if section_name then
-        section_name_str = string.format(' -n "%s"', section_name)
-    end
-    local top_level_is_meta = ctx.stats and top_level
-    if top_level_is_meta then
-        print(string.format('meta %s "%s"%s successfully completed',
-                            command, ctx.blueprint_name, section_name_str))
-        if not ctx.quiet and top_level_is_meta then
-            for _, stat in pairs(ctx.stats) do
-                if stat.always or stat.value > 0 then
-                    print(string.format('  %s: %d', stat.label, stat.value))
-                end
-            end
-        end
-    else
-        print(string.format('%s "%s"%s successfully completed',
-                            command, ctx.blueprint_name, section_name_str))
+        mode_modules[modeline.mode][command_switch[ctx.command]](
+            section_data.zlevel, section_data.grid, ctx)
     end
 end
 
@@ -122,7 +89,25 @@ function do_command(in_args)
     end
 
     quickfort_common.verbose = verbose
-    local ctx = {command=command, blueprint_name=blueprint_name,
-                 cursor=cursor, quiet=quiet, top_level=true}
+    local stats = {
+        out_of_bounds={label='Tiles outside map boundary', value=0},
+        invalid_keys={label='Invalid key sequences', value=0},
+    }
+    local ctx = {command=command, blueprint_name=blueprint_name, cursor=cursor,
+                 stats=stats}
     do_command_internal(ctx, section_name)
+    if command == 'orders' then quickfort_orders.create_orders(ctx) end
+    local section_name_str = ''
+    if section_name then
+        section_name_str = string.format(' -n "%s"', section_name)
+    end
+    print(string.format('%s "%s"%s successfully completed',
+                        command, blueprint_name, section_name_str))
+    if not quiet then
+        for _,stat in pairs(stats) do
+            if stat.always or stat.value > 0 then
+                print(string.format('  %s: %d', stat.label, stat.value))
+            end
+        end
+    end
 end

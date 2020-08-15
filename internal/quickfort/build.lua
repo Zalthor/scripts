@@ -159,6 +159,27 @@ end
 -- ************ the database ************ --
 --
 
+local screw_pump_data = {
+    [df.screw_pump_direction.FromNorth]={label='North', vertical=true},
+    [df.screw_pump_direction.FromEast]={label='East'},
+    [df.screw_pump_direction.FromSouth]={label='South', vertical=true},
+    [df.screw_pump_direction.FromWest]={label='West'}
+}
+local function make_screw_pump_entry(direction)
+    local width, height = 1, 1
+    if screw_pump_data[direction].vertical then
+        height = 2
+    else
+        width = 2
+    end
+    return {label=string.format('Screw Pump (Pump From %s)',
+                                screw_pump_data[direction].label),
+            type=df.building_type.ScrewPump,
+            min_width=width, max_width=width,
+            min_height=height, max_height=height,
+            direction=direction, is_valid_tile_fn=is_valid_tile_has_space}
+end
+
 local roller_data = {
     [df.screw_pump_direction.FromNorth]={label='Rollers (N->S)', vertical=true},
     [df.screw_pump_direction.FromEast]={label='Rollers (E->W)'},
@@ -200,7 +221,8 @@ local function make_trackstop_entry(direction, friction)
         label=label,
         type=df.building_type.Trap,
         subtype=df.trap_type.TrackStop,
-        fields=fields
+        fields=fields,
+        additional_orders={'wooden minecart'}
     }
 end
 
@@ -244,26 +266,11 @@ local building_db = {
     Y={label='Gem Window', type=df.building_type.WindowGem},
     D={label='Trade Depot', type=df.building_type.TradeDepot,
        min_width=5, max_width=5, min_height=5, max_height=5},
-    Ms={label='Screw Pump (Pump From North)', type=df.building_type.ScrewPump,
-        min_width=1, max_width=1, min_height=2, max_height=2,
-        direction=df.screw_pump_direction.FromNorth,
-        is_valid_tile_fn=is_valid_tile_has_space},
-    Msu={label='Screw Pump (Pump From North)', type=df.building_type.ScrewPump,
-         min_width=1, max_width=1, min_height=2, max_height=2,
-         direction=df.screw_pump_direction.FromNorth,
-         is_valid_tile_fn=is_valid_tile_has_space},
-    Msk={label='Screw Pump (Pump From East)', type=df.building_type.ScrewPump,
-         min_width=2, max_width=2, min_height=1, max_height=1,
-         direction=df.screw_pump_direction.FromEast,
-         is_valid_tile_fn=is_valid_tile_has_space},
-    Msm={label='Screw Pump (Pump From South)', type=df.building_type.ScrewPump,
-         min_width=1, max_width=1, min_height=2, max_height=2,
-         direction=df.screw_pump_direction.FromSouth,
-         is_valid_tile_fn=is_valid_tile_has_space},
-    Msh={label='Screw Pump (Pump From West)', type=df.building_type.ScrewPump,
-         min_width=2, max_width=2, min_height=1, max_height=1,
-         direction=df.screw_pump_direction.FromWest,
-         is_valid_tile_fn=is_valid_tile_has_space},
+    Ms=make_screw_pump_entry(df.screw_pump_direction.FromNorth),
+    Msu=make_screw_pump_entry(df.screw_pump_direction.FromNorth),
+    Msk=make_screw_pump_entry(df.screw_pump_direction.FromEast),
+    Msm=make_screw_pump_entry(df.screw_pump_direction.FromSouth),
+    Msh=make_screw_pump_entry(df.screw_pump_direction.FromWest),
     -- there is no enum for water wheel and horiz axle directions, we just have
     -- to pass a non-zero integer (but not a boolean)
     Mw={label='Water Wheel (N/S)', type=df.building_type.WaterWheel,
@@ -310,7 +317,8 @@ local building_db = {
     v={label='Restraint', type=df.building_type.Chain},
     j={label='Cage', type=df.building_type.Cage},
     A={label='Archery Target', type=df.building_type.ArcheryTarget},
-    R={label='Traction Bench', type=df.building_type.TractionBench},
+    R={label='Traction Bench', type=df.building_type.TractionBench,
+       additional_orders={'table', 'mechanisms', 'cloth rope'}},
     N={label='Nest Box', type=df.building_type.NestBox},
     ['{Alt}h']={label='Hive', type=df.building_type.Hive},
     -- Offering Places, Bookcases, and Display Furniture are not yet supported
@@ -752,40 +760,42 @@ local function create_building(b)
     if db_entry.post_construction_fn then db_entry.post_construction_fn(bld) end
 end
 
-function do_run(zlevel, grid)
-    local stats = {
-        designated={label='Buildings designated', value=0, always=true},
-        unsuitable={label='Unsuitable tiles', value=0},
-        out_of_bounds={label='Tiles outside map boundary', value=0},
-        invalid_keys={label='Invalid key sequences', value=0},
-    }
+function do_run(zlevel, grid, ctx)
+    local stats = ctx.stats
+    stats.build_designated = stats.build_designated or
+            {label='Buildings designated', value=0, always=true}
+    stats.build_unsuitable = stats.build_unsuitable or
+            {label='Unsuitable tiles for building', value=0}
 
     local buildings = {}
-    stats.invalid_keys.value = quickfort_building.init_buildings(
-        zlevel, grid, buildings, building_db, building_aliases)
-    stats.out_of_bounds.value = quickfort_building.crop_to_bounds(
-        buildings, building_db)
-    stats.unsuitable.value = quickfort_building.check_tiles_and_extents(
-        buildings, building_db)
+    stats.invalid_keys.value =
+            stats.invalid_keys.value + quickfort_building.init_buildings(
+                zlevel, grid, buildings, building_db, building_aliases)
+    stats.out_of_bounds.value =
+            stats.out_of_bounds.value + quickfort_building.crop_to_bounds(
+                buildings, building_db)
+    stats.build_unsuitable.value =
+            stats.build_unsuitable.value +
+            quickfort_building.check_tiles_and_extents(
+                buildings, building_db)
 
     for _, b in ipairs(buildings) do
         if b.pos then
             create_building(b)
-            stats.designated.value = stats.designated.value + 1
+            stats.build_designated.value = stats.build_designated.value + 1
         end
     end
     buildingplan.doCycle()
     dfhack.job.checkBuildingsNow()
-    return stats
 end
 
-function do_orders(zlevel, grid)
-    local stats = {invalid_keys={label='Invalid key sequences', value=0}}
+function do_orders(zlevel, grid, ctx)
+    local stats = ctx.stats
     local buildings = {}
-    stats.invalid_keys.value = quickfort_building.init_buildings(
-        zlevel, grid, buildings, building_db, building_aliases, true)
-    quickfort_orders.enqueue_orders(stats, buildings, building_db)
-    return stats
+    stats.invalid_keys.value =
+            stats.invalid_keys.value + quickfort_building.init_buildings(
+                zlevel, grid, buildings, building_db, building_aliases)
+    quickfort_orders.enqueue_orders(stats, buildings, building_db, ctx)
 end
 
 local function is_queued_for_destruction(bld)
@@ -797,16 +807,17 @@ local function is_queued_for_destruction(bld)
     return false
 end
 
-function do_undo(zlevel, grid)
-    local stats = {
-        removed={label='Buildings removed', value=0, always=true},
-        marked={label='Buildings marked for removal', value=0},
-        invalid_keys={label='Invalid key sequences', value=0},
-    }
+function do_undo(zlevel, grid, ctx)
+    local stats = ctx.stats
+    stats.build_undesignated = stats.build_undesignated or
+            {label='Buildings undesignated', value=0, always=true}
+    stats.build_marked = stats.build_marked or
+            {label='Buildings marked for removal', value=0}
 
     local buildings = {}
-    stats.invalid_keys.value = quickfort_building.init_buildings(
-        zlevel, grid, buildings, building_db, building_aliases)
+    stats.invalid_keys.value =
+            stats.invalid_keys.value + quickfort_building.init_buildings(
+                zlevel, grid, buildings, building_db, building_aliases)
 
     for _, s in ipairs(buildings) do
         for extent_x, col in ipairs(s.extent_grid) do
@@ -818,14 +829,14 @@ function do_undo(zlevel, grid)
                 if bld and bld:getType() ~= df.building_type.Stockpile and
                         not is_queued_for_destruction(bld) then
                     if dfhack.buildings.deconstruct(bld) then
-                        stats.removed.value = stats.removed.value + 1
+                        stats.build_undesignated.value =
+                                stats.build_undesignated.value + 1
                     else
-                        stats.marked.value = stats.marked.value + 1
+                        stats.build_marked.value = stats.build_marked.value + 1
                     end
                 end
                 ::continue::
             end
         end
     end
-    return stats
 end
