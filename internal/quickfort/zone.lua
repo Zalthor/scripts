@@ -6,6 +6,7 @@ if not dfhack_flags.module then
 end
 
 require('dfhack.buildings') -- loads additional functions into dfhack.buildings
+local utils = require('utils')
 local quickfort_common = reqscript('internal/quickfort/common')
 local quickfort_building = reqscript('internal/quickfort/building')
 local log = quickfort_common.log
@@ -23,28 +24,42 @@ local function is_valid_zone_extent(s)
     return false
 end
 
-local zone_db = {
-    w={label='Water Source', flag='water_source'},
-    f={label='Fishing', flag='fishing'},
-    g={label='Gather/Pick Fruit', flag='gather'},
-    d={label='Garbage Dump', flag='garbage_dump'},
-    n={label='Pen/Pasture', flag='pen_pasture'},
-    p={label='Pit/Pond', flag='pit_pond'},
-    s={label='Sand', flag='sand'},
-    c={label='Clay', flag='clay'},
-    m={label='Meeting Area', flag='meeting_area'},
-    h={label='Hospital', flag='hospital'},
-    t={label='Animal Training', flag='animal_training'},
+local zone_template = {
+    has_extents=true, min_width=1, max_width=31, min_height=1, max_height=31,
+    is_valid_tile_fn = is_valid_zone_tile,
+    is_valid_extent_fn = is_valid_zone_extent
 }
-for _, v in pairs(zone_db) do
-    v.has_extents = true
-    v.min_width = 1
-    v.max_width = 31
-    v.min_height = 1
-    v.max_height = 31
-    v.is_valid_tile_fn = is_valid_zone_tile
-    v.is_valid_extent_fn = is_valid_zone_extent
+
+local zone_db = {
+    w={label='Water Source', flags={'water_source'}},
+    f={label='Fishing', flags={'fishing'}},
+    g={label='Gather/Pick Fruit', flags={'gather'}},
+    d={label='Garbage Dump', flags={'garbage_dump'}},
+    n={label='Pen/Pasture', flags={'pen_pasture'}},
+    p={label='Pit/Pond', flags={'pit_pond'}},
+    s={label='Sand', flags={'sand'}},
+    c={label='Clay', flags={'clay'}},
+    m={label='Meeting Area', flags={'meeting_area'}},
+    h={label='Hospital', flags={'hospital'}},
+    t={label='Animal Training', flags={'animal_training'}},
+}
+for _, v in pairs(zone_db) do utils.assign(v, zone_template) end
+
+local function custom_zone(_, keys)
+    local labels = {}
+    local flags = {}
+    for k in keys:gmatch('.') do
+        if not zone_db[k] then return nil end
+        table.insert(labels, zone_db[k].label)
+        table.insert(flags, zone_db[k].flags[1])
+    end
+    local zone_data = {label=table.concat(labels, '+'), flags=flags}
+    utils.assign(zone_data, zone_template)
+    return zone_data
 end
+
+setmetatable(zone_db, {__index=custom_zone})
+
 
 local function create_zone(zone)
     log('creating %s zone at map coordinates (%d, %d, %d), defined' ..
@@ -67,7 +82,9 @@ local function create_zone(zone)
     end
     -- constructBuilding deallocates extents, so we have to assign it after
     bld.room.extents = extents
-    bld.zone_flags[zone_db[zone.type].flag] = true
+    for _,flag in ipairs(zone_db[zone.type].flags) do
+        bld.zone_flags[flag] = true
+    end
     bld.zone_flags.active = true
     bld.gather_flags.pick_trees = true
     bld.gather_flags.pick_shrubs = true
