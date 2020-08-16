@@ -31,6 +31,7 @@ local zone_template = {
 }
 
 local zone_db = {
+    a={label='Inactive', flags={'active'}}, -- unspecified means active
     w={label='Water Source', flags={'water_source'}},
     f={label='Fishing', flags={'fishing'}},
     g={label='Gather/Pick Fruit', flags={'gather'}},
@@ -60,7 +61,6 @@ end
 
 setmetatable(zone_db, {__index=custom_zone})
 
-
 local function create_zone(zone)
     log('creating %s zone at map coordinates (%d, %d, %d), defined' ..
         ' from spreadsheet cells: %s',
@@ -78,14 +78,16 @@ local function create_zone(zone)
         if extents then df.delete(extents) end
         -- this is an error instead of a qerror since our validity checking
         -- is supposed to prevent this from ever happening
-        error(string.format('unable to place zone: %s', err))
+        error(string.format('unable to designate zone: %s', err))
     end
     -- constructBuilding deallocates extents, so we have to assign it after
     bld.room.extents = extents
     for _,flag in ipairs(zone_db[zone.type].flags) do
         bld.zone_flags[flag] = true
     end
-    bld.zone_flags.active = true
+    -- zones are enabled by default. if it was toggled in the keys, we actually
+    -- want to turn it off here
+    bld.zone_flags.active = not bld.zone_flags.active
     bld.gather_flags.pick_trees = true
     bld.gather_flags.pick_shrubs = true
     bld.gather_flags.gather_fallen = true

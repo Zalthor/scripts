@@ -478,7 +478,8 @@ local building_db = {
     Tw={label='Weapon Trap',
         type=df.building_type.Trap, subtype=df.trap_type.WeaponTrap},
     Tl={label='Lever',
-        type=df.building_type.Trap, subtype=df.trap_type.Lever},
+        type=df.building_type.Trap, subtype=df.trap_type.Lever,
+        additional_orders={'mechanisms', 'mechanisms'}},
     -- TODO: lots of configuration here with no natural order. may need
     -- special-case logic when we read the keys.
     Tp={label='Pressure Plate',
