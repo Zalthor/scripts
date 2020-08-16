@@ -307,12 +307,8 @@ local function process_levels(reader_ctx, label, start_cursor_coord)
     while true do
         local grid, num_section_rows, zmod =
                 process_level(reader_ctx, cur_line_num, xyz2pos(x, y, z))
-        for _, _ in pairs(grid) do
-            -- apparently, the only way to tell if a sparse array is not empty
-            table.insert(section_data_list,
-                         {modeline=modeline, zlevel=z, grid=grid})
-            break;
-        end
+        table.insert(section_data_list,
+                     {modeline=modeline, zlevel=z, grid=grid})
         if zmod == nil then break end
         cur_line_num = cur_line_num + num_section_rows + 1
         z = z + zmod
