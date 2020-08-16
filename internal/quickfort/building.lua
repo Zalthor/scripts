@@ -371,3 +371,11 @@ function make_extents(b, db)
     end
     return extents, num_tiles
 end
+
+-- ensures we don't leak memory by overwriting extents
+-- constructBuilding deallocates any extents we pass in, so we have to assign it
+-- after the building is created
+function assign_extents(bld, extents)
+    if bld.room.extents then df.delete(bld.room.extents) end
+    bld.room.extents = extents
+end

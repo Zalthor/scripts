@@ -751,9 +751,9 @@ local function create_building(b)
         -- is supposed to prevent this from ever happening
         error(string.format('unable to place %s: %s', db_entry.label, err))
     end
-    -- constructBuilding deallocates extents, so we have to assign it after
     if use_extents then
-        bld.room.extents = quickfort_building.make_extents(b, building_db)
+        quickfort_building.assign_extents(
+            bld, quickfort_building.make_extents(b, building_db))
     end
     if buildingplan.isPlannableBuilding(db_entry.type) then
         log('registering with buildingplan')

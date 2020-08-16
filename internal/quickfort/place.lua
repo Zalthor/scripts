@@ -182,8 +182,7 @@ local function create_stockpile(s, stockpile_query_grid)
         -- is supposed to prevent this from ever happening
         error(string.format('unable to place stockpile: %s', err))
     end
-    -- constructBuilding deallocates extents, so we have to assign it after
-    bld.room.extents = extents
+    quickfort_building.assign_extents(bld, extents)
     queue_stockpile_settings_init(s, db_entry, stockpile_query_grid)
     return ntiles
 end

@@ -66,7 +66,6 @@ local function create_zone(zone)
         ' from spreadsheet cells: %s',
         zone_db[zone.type].label, zone.pos.x, zone.pos.y, zone.pos.z,
         table.concat(zone.cells, ', '))
-    local extents, ntiles = quickfort_building.make_extents(zone, zone_db)
     local fields = {room={x=zone.pos.x, y=zone.pos.y,
                           width=zone.width, height=zone.height},
                     is_room=true}
@@ -75,13 +74,12 @@ local function create_zone(zone)
         abstract=true, pos=zone.pos, width=zone.width, height=zone.height,
         fields=fields}
     if not bld then
-        if extents then df.delete(extents) end
         -- this is an error instead of a qerror since our validity checking
         -- is supposed to prevent this from ever happening
         error(string.format('unable to designate zone: %s', err))
     end
-    -- constructBuilding deallocates extents, so we have to assign it after
-    bld.room.extents = extents
+    local extents, ntiles = quickfort_building.make_extents(zone, zone_db)
+    quickfort_building.assign_extents(bld, extents)
     for _,flag in ipairs(zone_db[zone.type].flags) do
         bld.zone_flags[flag] = true
     end
