@@ -485,7 +485,8 @@ local building_db = {
     Tp={label='Pressure Plate',
         type=df.building_type.Trap, subtype=df.trap_type.PressurePlate},
     Tc={label='Cage Trap',
-        type=df.building_type.Trap, subtype=df.trap_type.CageTrap},
+        type=df.building_type.Trap, subtype=df.trap_type.CageTrap,
+        additional_orders={'wooden cage'}},
     -- TODO: Same as weapon trap above
     TS={label='Upright Spear/Spike',
         type=df.building_type.Weapon, subtype=df.trap_type.StoneFallTrap},
@@ -600,7 +601,8 @@ for _, v in pairs(building_db) do
             v.min_width, v.max_width, v.min_height, v.max_height = 1, 1, 1, 1
         end
     end
-    if v.type == df.building_type.Workshop then
+    if v.type == df.building_type.Workshop or
+            v.type == df.building_type.Furnace then
         v.post_construction_fn = post_construction_init_workshop
     end
     if v.type == df.building_type.Bridge then

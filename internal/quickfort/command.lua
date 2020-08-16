@@ -40,14 +40,15 @@ function do_command_internal(ctx, section_name)
     local section_data_list = quickfort_parse.process_section(
             filepath, sheet_name, label, ctx.cursor)
     local command = ctx.command
+    local first_modeline = nil
     for _, section_data in ipairs(section_data_list) do
-        local modeline = section_data.modeline
+        if not first_modeline then first_modeline = section_data.modeline end
         ctx.cursor.z = section_data.zlevel
-        mode_modules[modeline.mode][command_switch[ctx.command]](
+        mode_modules[section_data.modeline.mode][command_switch[ctx.command]](
             section_data.zlevel, section_data.grid, ctx)
-        if modeline.message then
-            table.insert(ctx.messages, modeline.message)
-        end
+    end
+    if first_modeline and first_modeline.message then
+        table.insert(ctx.messages, first_modeline.message)
     end
 end
 
@@ -113,7 +114,9 @@ function do_command(in_args)
             end
         end
     end
-    for _,message in ipairs(ctx.messages) do
-        print('* '..message)
+    if command == 'run' then
+        for _,message in ipairs(ctx.messages) do
+            print('* '..message)
+        end
     end
 end

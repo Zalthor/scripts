@@ -95,18 +95,16 @@ local function parse_start(modeline, start_pos, filename, marker_values)
     local _, start_str_end, start_str =
             string.find(modeline, '^%s+start(%b())', start_pos)
     if not start_str or #start_str == 0 then return false, start_pos end
-    _, _, startx, starty, start_comment =
+    local _, _, startx, starty, start_comment =
             string.find(start_str,
                         '^%(%s*(%d+)%s*[;, ]%s*(%d+)%s*[;, ]?%s*(.*)%)$')
-    if not startx or not starty then
-        print(string.format(
-            'error while parsing "%s": invalid start offsets: %s',
-            filename, modeline))
-        marker_values.startx = 1
-        marker_values.starty = 1
-    else
+    if startx and starty then
         marker_values.startx = startx
         marker_values.starty = starty
+        marker_values.start_comment = start_comment
+    else
+        -- the whole thing is a comment
+        _, _, start_comment = string.find(start_str, '^%(%s*(.-)%s*%)$')
         marker_values.start_comment = start_comment
     end
     return true, start_str_end + 1
@@ -127,9 +125,7 @@ local function parse_message(modeline, start_pos, filename, marker_values)
         return false, start_pos
     end
     local _, _, message = string.find(message_str, '^%(%s*(.-)%s*%)$')
-    if message and #message > 0 then
-        marker_values.message = message
-    end
+    marker_values.message = message
     return true, message_str_end + 1
 end
 

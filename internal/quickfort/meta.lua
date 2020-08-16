@@ -53,8 +53,10 @@ local function do_meta(zlevel, grid, ctx)
         end
     end
     table.sort(cells, sort_cells)
+    local saved_zlevel = ctx.cursor.z
     for _, cell in ipairs(cells) do
         quickfort_command.do_command_internal(ctx, cell.section_name)
+        ctx.cursor.z = saved_zlevel
         stats.meta_blueprints.value = stats.meta_blueprints.value + 1
     end
     return stats
