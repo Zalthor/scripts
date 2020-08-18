@@ -32,6 +32,9 @@ Usage:
     below for available keys and values.
 **quickfort reset**
     Resets quickfort configuration to the defaults in ``quickfort.txt``.
+**quickfort gui**
+    Starts the quickfort dialog, where you can run blueprints from an
+    interactive list.
 **quickfort list [search string] [-m|--mode <mode>] [-l|--library] [-h|--hidden]**
     Lists blueprints in the ``blueprints`` folder. Blueprints are ``.csv`` files
     or sheets within ``.xlsx`` files that contain a ``#<mode>`` comment in the
@@ -120,6 +123,7 @@ local quickfort_build = reqscript('internal/quickfort/build')
 local quickfort_building = reqscript('internal/quickfort/building')
 local quickfort_command = reqscript('internal/quickfort/command')
 local quickfort_common = reqscript('internal/quickfort/common')
+local quickfort_dialog = reqscript('internal/quickfort/dialog')
 local quickfort_dig = reqscript('internal/quickfort/dig')
 local quickfort_keycodes = reqscript('internal/quickfort/keycodes')
 local quickfort_list = reqscript('internal/quickfort/list')
@@ -141,6 +145,9 @@ quickfort set [<key> <value>]
     "quickfort set" to show current settings.
 quickfort reset
     Resets quickfort configuration to defaults.
+quickfort gui
+    Starts the quickfort dialog, where you can run blueprints from an
+    interactive list.
 quickfort list [search string] [-m|--mode <mode>] [-l|--library] [-h|--hidden]
     Lists blueprints in the "blueprints" folder. Specify -l to include library
     blueprints and -h to include hidden blueprints. The list can be filtered by
@@ -181,6 +188,7 @@ end
 local action_switch = {
     set=quickfort_set.do_set,
     reset=quickfort_set.do_reset,
+    gui=quickfort_dialog.do_dialog,
     list=quickfort_list.do_list,
     run=quickfort_command.do_command,
     orders=quickfort_command.do_command,

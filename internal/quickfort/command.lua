@@ -34,6 +34,11 @@ local command_switch = {
 }
 
 function do_command_internal(ctx, section_name)
+    ctx.stats.out_of_bounds = ctx.stats.out_of_bounds or
+            {label='Tiles outside map boundary', value=0}
+    ctx.stats.invalid_keys = ctx.stats.invalid_keys or
+            {label='Invalid key sequences', value=0}
+
     local sheet_name, label = parse_section_name(section_name)
     ctx.sheet_name = sheet_name
     local filepath = quickfort_common.get_blueprint_filepath(ctx.blueprint_name)
@@ -49,6 +54,23 @@ function do_command_internal(ctx, section_name)
     end
     if first_modeline and first_modeline.message then
         table.insert(ctx.messages, first_modeline.message)
+    end
+end
+
+function finish_command(ctx, section_name, quiet)
+    if ctx.command == 'orders' then quickfort_orders.create_orders(ctx) end
+    local section_name_str = ''
+    if section_name then
+        section_name_str = string.format(' -n "%s"', section_name)
+    end
+    print(string.format('%s "%s"%s successfully completed',
+                        ctx.command, ctx.blueprint_name, section_name_str))
+    if not quiet then
+        for _,stat in pairs(ctx.stats) do
+            if stat.always or stat.value > 0 then
+                print(string.format('  %s: %d', stat.label, stat.value))
+            end
+        end
     end
 end
 
@@ -93,30 +115,17 @@ function do_command(in_args)
     end
 
     quickfort_common.verbose = verbose
-    local stats = {
-        out_of_bounds={label='Tiles outside map boundary', value=0},
-        invalid_keys={label='Invalid key sequences', value=0},
-    }
-    local ctx = {command=command, blueprint_name=blueprint_name, cursor=cursor,
-                 stats=stats, messages={}}
-    do_command_internal(ctx, section_name)
-    if command == 'orders' then quickfort_orders.create_orders(ctx) end
-    local section_name_str = ''
-    if section_name then
-        section_name_str = string.format(' -n "%s"', section_name)
-    end
-    print(string.format('%s "%s"%s successfully completed',
-                        command, blueprint_name, section_name_str))
-    if not quiet then
-        for _,stat in pairs(stats) do
-            if stat.always or stat.value > 0 then
-                print(string.format('  %s: %d', stat.label, stat.value))
+    dfhack.with_finalize(
+        function() quickfort_common.verbose = false end,
+        function()
+            local ctx = {command=command, blueprint_name=blueprint_name,
+                         cursor=cursor, stats={}, messages={}}
+            do_command_internal(ctx, section_name)
+            finish_command(ctx, section_name, quiet)
+            if command == 'run' then
+                for _,message in ipairs(ctx.messages) do
+                    print('* '..message)
+                end
             end
-        end
-    end
-    if command == 'run' then
-        for _,message in ipairs(ctx.messages) do
-            print('* '..message)
-        end
-    end
+        end)
 end

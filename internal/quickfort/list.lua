@@ -109,6 +109,7 @@ function get_blueprint_by_number(list_num)
     if #blueprints == 0 then
         scan_blueprints()
     end
+    list_num = tonumber(list_num)
     local blueprint = blueprints[list_num]
     if not blueprint then
         qerror(string.format('invalid list index: %d', list_num))
@@ -116,6 +117,36 @@ function get_blueprint_by_number(list_num)
     local section_name =
             get_section_name(blueprint.sheet_name, blueprint.modeline.label)
     return blueprint.path, section_name
+end
+
+-- returns a sequence of structured data to display. note that the id may not
+-- be equal to the list index due to holes left by hidden blueprints.
+function do_list_internal(show_library, show_hidden)
+    scan_blueprints()
+    local display_list = {}
+    for i,v in ipairs(blueprints) do
+        if not show_library and v.is_library then goto continue end
+        if not show_hidden and v.modeline.hidden then goto continue end
+        local display_data = {
+            id=i,
+            path=v.path,
+            mode=v.modeline.mode,
+            section_name=get_section_name(v.sheet_name, v.modeline.label),
+            start_comment=v.modeline.start_comment,
+            comment=v.modeline.comment,
+        }
+        local search_key = ''
+        for _,v in pairs(display_data) do
+            if v then
+                -- order doesn't matter; we just need all the strings in there
+                search_key = string.format('%s %s', search_key, tostring(v))
+            end
+        end
+        display_data.search_key = search_key
+        table.insert(display_list, display_data)
+        ::continue::
+    end
+    return display_list
 end
 
 local valid_list_args = utils.invert({
@@ -139,40 +170,31 @@ function do_list(in_args)
     if filter_mode and not quickfort_common.valid_modes[filter_mode] then
         qerror(string.format('invalid mode: "%s"', filter_mode))
     end
-    scan_blueprints()
-    local num_blueprints, num_printed = 0, 0
-    for i, v in ipairs(blueprints) do
-        if v.is_library and not show_library then goto continue end
-        if not show_hidden and v.modeline.hidden then goto continue end
-        num_blueprints = num_blueprints + 1
-        if filter_mode and v.modeline.mode ~= filter_mode then goto continue end
+    local list = do_list_internal(show_library, show_hidden)
+    local num_filtered = 0
+    for _,v in ipairs(list) do
+        if (filter_string and not string.find(v.search_key, filter_string)) or
+                (filter_mode and v.modeline.mode ~= filter_mode) then
+            num_filtered = num_filtered + 1
+            goto continue
+        end
         local sheet_spec = ''
-        local section_name = get_section_name(v.sheet_name, v.modeline.label)
-        if section_name then
+        if v.section_name then
             sheet_spec = string.format(' -n "%s"', section_name)
         end
         local comment = ')'
-        if #v.modeline.comment > 0 then
-            comment = string.format(': %s)', v.modeline.comment)
-        end
+        if v.comment then comment = string.format(': %s)', v.comment) end
         local start_comment = ''
-        if v.modeline.start_comment and #v.modeline.start_comment > 0 then
-            start_comment = string.format('; cursor start: %s',
-                                            v.modeline.start_comment)
+        if v.start_comment then
+            start_comment = string.format('; cursor start: %s', v.start_comment)
         end
-        local line = string.format(
-            '%d) "%s"%s (%s%s%s',
-            i, v.path, sheet_spec, v.modeline.mode, comment, start_comment)
-        if not filter_string or string.find(line, filter_string) then
-            print(line)
-            num_printed = num_printed + 1
-        end
+        print(string.format(
+                '%d) "%s"%s (%s%s%s',
+                v.id, v.path, sheet_spec, v.mode, comment, start_comment))
         ::continue::
     end
-    local num_filtered = num_blueprints - num_printed
     if num_filtered > 0 then
         print(string.format('  %d blueprints did not match filter',
                             num_filtered))
     end
 end
-
