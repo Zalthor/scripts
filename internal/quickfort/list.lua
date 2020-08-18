@@ -26,11 +26,12 @@ local function scan_csv_blueprint(path)
 end
 
 local function get_xlsx_file_sheet_infos(filepath)
+    local sheet_infos = {}
     local xlsx_file = xlsxreader.open_xlsx_file(filepath)
+    if not xlsx_file then return sheet_infos end
     return dfhack.with_finalize(
         function() xlsxreader.close_xlsx_file(xlsx_file) end,
         function()
-            local sheet_infos = {}
             for _, sheet_name in ipairs(xlsxreader.list_sheets(xlsx_file)) do
                 local modelines =
                         quickfort_parse.get_modelines(filepath, sheet_name)
@@ -53,7 +54,7 @@ local function scan_xlsx_blueprint(path)
     local sheet_infos = get_xlsx_file_sheet_infos(filepath)
     if #sheet_infos == 0 then
         print(string.format(
-                'skipping "%s": no sheet with #mode markers detected', v.path))
+                'skipping "%s": no sheet with #mode markers detected', path))
     end
     blueprint_cache[path] = {sheet_infos=sheet_infos, mtime=mtime}
     return sheet_infos
