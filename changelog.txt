@@ -14,10 +14,6 @@ that repo.
 # Future
 
 ## New Scripts
-- `animalcontrol`: helps manage the butchery and gelding of animals
-- `geld`: gelds or ungelds animals
-- `getwaves`: displays migration wave information for citizens/units
-- `ungeld`: ungelds animals (wrapper around `geld`)
 
 ## Fixes
 - `digfort`: fixed y-line tracking when .csv files contain lines with only commas
